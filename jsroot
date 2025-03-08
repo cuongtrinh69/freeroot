@@ -1,0 +1,98 @@
+#!/bin/sh
+
+#############################
+# Alpine Linux Installation #
+#############################
+
+ROOTFS_DIR=/home/container
+
+ALPINE_VERSION="3.18"
+ALPINE_FULL_VERSION="3.18.3"
+APK_TOOLS_VERSION="2.14.0-r2" # Make sure to update this too when updating Alpine Linux.
+PROOT_VERSION="5.3.0" # Some releases do not have static builds attached.
+
+ARCH=$(uname -m)
+
+if [ "$ARCH" = "x86_64" ]; then
+  ARCH_ALT=amd64
+elif [ "$ARCH" = "aarch64" ]; then
+  ARCH_ALT=arm64
+else
+  printf "Unsupported CPU architecture: ${ARCH}"
+  exit 1
+fi
+
+if [ ! -e $ROOTFS_DIR/.installed ]; then
+    curl -Lo /tmp/rootfs.tar.gz \
+    "https://dl-cdn.alpinelinux.org/alpine/v${ALPINE_VERSION}/releases/${ARCH}/alpine-minirootfs-${ALPINE_FULL_VERSION}-${ARCH}.tar.gz"
+    tar -xzf /tmp/rootfs.tar.gz -C $ROOTFS_DIR
+fi
+
+################################
+# Package Installation & Setup #
+################################
+
+if [ ! -e $ROOTFS_DIR/.installed ]; then
+    # Download the packages from their sources.
+    curl -Lo /tmp/apk-tools-static.apk "https://dl-cdn.alpinelinux.org/alpine/v${ALPINE_VERSION}/main/${ARCH}/apk-tools-static-${APK_TOOLS_VERSION}.apk"
+    curl -Lo /tmp/gotty.tar.gz "https://github.com/sorenisanerd/gotty/releases/download/v1.5.0/gotty_v1.5.0_linux_${ARCH_ALT}.tar.gz"
+    curl -Lo $ROOTFS_DIR/usr/local/bin/proot "https://github.com/proot-me/proot/releases/download/v${PROOT_VERSION}/proot-v${PROOT_VERSION}-${ARCH}-static"
+    # Extract everything that needs to be extracted.
+    tar -xzf /tmp/apk-tools-static.apk -C /tmp/
+    tar -xzf /tmp/gotty.tar.gz -C $ROOTFS_DIR/usr/local/bin
+    # Install base system packages using the static APK-Tools.
+    /tmp/sbin/apk.static -X "https://dl-cdn.alpinelinux.org/alpine/v${ALPINE_VERSION}/main/" -U --allow-untrusted --root $ROOTFS_DIR add alpine-base apk-tools
+    # Make PRoot and GoTTY executable.
+    chmod 755 $ROOTFS_DIR/usr/local/bin/proot $ROOTFS_DIR/usr/local/bin/gotty
+fi
+
+# Clean-up after installation complete & finish up.
+if [ ! -e $ROOTFS_DIR/.installed ]; then
+    # Add DNS Resolver nameservers to resolv.conf.
+    printf "nameserver 1.1.1.1\nnameserver 1.0.0.1" > ${ROOTFS_DIR}/etc/resolv.conf
+    # Wipe the files we downloaded into /tmp previously.
+    rm -rf /tmp/apk-tools-static.apk /tmp/rootfs.tar.gz /tmp/sbin
+    # Create .installed to later check whether Alpine is installed.
+    touch $ROOTFS_DIR/.installed
+fi
+
+clear && cat << EOF
+
+███████  ██████   ██████  ███████  ██████   ██████   ██████  
+██       ██   ██  ██   ██  ██       ██   ██  ██   ██  ██   ██ 
+█████    ██████   ██████   █████    ██████   ██████   ██   ██ 
+██       ██       ██       ██       ██   ██  ██   ██  ██   ██ 
+███████  ██       ██       ███████  ██   ██  ██   ██  ██████  
+
+ 
+Chào mừng đến với Alpine Linux freerootmini!
+Đây là bản phân phối Linux nhẹ và hướng đến bảo mật, hoàn hảo để chạy các ứng dụng hiệu suất cao.
+ Sau đây là một số lệnh hữu ích để bạn bắt đầu:
+ 
+    apk add [gói] : cài đặt một gói
+    apk del [gói] : loại bỏ một gói
+    apk update : cập nhật chỉ mục gói
+    apk upgrade : nâng cấp các gói đã cài đặt
+    apk search [từ khóa] : tìm kiếm một gói
+    apk info [gói] : hiển thị thông tin về một gói
+    gotty -p [cổng mở] -w ash : chia sẻ terminal của bạn
+ 
+ Đây là bản đã được việt hóa để sử dụng.
+ 
+EOF
+
+###########################
+# Bắt đầu môi trường PRoot #
+###########################
+
+$ROOTFS_DIR/usr/local/bin/proot \
+--rootfs="${ROOTFS_DIR}" \
+--link2symlink \
+--kill-on-exit \
+--root-id \
+--cwd=/root \
+--bind=/proc \
+--bind=/dev \
+--bind=/sys \
+--bind=/tmp \
+/bin/sh
