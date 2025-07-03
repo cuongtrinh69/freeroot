@@ -36,8 +36,16 @@ if [ ! -e $ROOTFS_DIR/.installed ]; then
     echo "[*] Thiết lập DNS..."
     echo "nameserver 1.1.1.1" > $ROOTFS_DIR/etc/resolv.conf
 
-    rm -rf /tmp/ubuntu.tar.gz
+    echo "[*] Bỏ kiểm tra GPG apt và cấu hình lại dpkg nếu cần..."
+    mkdir -p $ROOTFS_DIR/var/lib/dpkg
+    [ ! -e $ROOTFS_DIR/var/lib/dpkg/status ] && touch $ROOTFS_DIR/var/lib/dpkg/status
+
+    echo 'Acquire::AllowInsecureRepositories "true";' > $ROOTFS_DIR/etc/apt/apt.conf.d/99insecure
+    echo 'APT::Get::AllowUnauthenticated "true";' > $ROOTFS_DIR/etc/apt/apt.conf.d/99unauth
+    sed -i 's/^deb /deb [trusted=yes] /' $ROOTFS_DIR/etc/apt/sources.list 2>/dev/null || true
+
     touch $ROOTFS_DIR/.installed
+    rm -rf /tmp/ubuntu.tar.gz
 fi
 
 ################################
