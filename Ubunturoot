@@ -1,0 +1,83 @@
+#!/bin/sh
+
+################################
+# Ubuntu Server Installation   #
+################################
+
+ROOTFS_DIR=/home/container
+UBUNTU_VERSION="22.04"
+ARCH=$(uname -m)
+
+if [ "$ARCH" = "x86_64" ]; then
+  ARCH_ALT=amd64
+elif [ "$ARCH" = "aarch64" ]; then
+  ARCH_ALT=arm64
+else
+  printf "Unsupported CPU architecture: ${ARCH}\n"
+  exit 1
+fi
+
+ROOTFS_URL="https://partner-images.canonical.com/core/jammy/current/ubuntu-jammy-core-cloudimg-${ARCH_ALT}-root.tar.gz"
+PROOT_VERSION="5.3.0"
+
+# Cài đặt nếu chưa có rootfs
+if [ ! -e $ROOTFS_DIR/.installed ]; then
+    echo "[*] Đang tải Ubuntu rootfs..."
+    curl -Lo /tmp/ubuntu.tar.gz "$ROOTFS_URL"
+
+    echo "[*] Đang giải nén rootfs..."
+    mkdir -p $ROOTFS_DIR
+    tar -xzf /tmp/ubuntu.tar.gz -C $ROOTFS_DIR
+
+    echo "[*] Đang tải proot..."
+    curl -Lo $ROOTFS_DIR/usr/local/bin/proot "https://github.com/proot-me/proot/releases/download/v${PROOT_VERSION}/proot-v${PROOT_VERSION}-${ARCH}-static"
+    chmod 755 $ROOTFS_DIR/usr/local/bin/proot
+
+    echo "[*] Thiết lập DNS..."
+    echo "nameserver 1.1.1.1" > $ROOTFS_DIR/etc/resolv.conf
+
+    rm -rf /tmp/ubuntu.tar.gz
+    touch $ROOTFS_DIR/.installed
+fi
+
+################################
+# Giới thiệu Ubuntu bằng ASCII #
+################################
+clear && cat << EOF
+
+██    ██ ██████  ██    ██ ██████  ███    ██ ██    ██     ███████ ██    ██ ███████ ██████  ███████ 
+██    ██ ██   ██ ██    ██ ██   ██ ████   ██ ██    ██     ██      ██    ██ ██      ██   ██ ██      
+██    ██ ██████  ██    ██ ██   ██ ██ ██  ██ ██    ██     ███████ ██    ██ █████   ██████  ███████ 
+██    ██ ██   ██ ██    ██ ██   ██ ██  ██ ██ ██    ██          ██ ██    ██ ██      ██   ██      ██ 
+ ██████  ██████   ██████  ██████  ██   ████  ██████      ███████  ██████  ███████ ██   ██ ███████ 
+                                                                                                  
+
+Chào mừng đến với Ubuntu Server freerootmini!
+Đây là một hệ điều hành phổ biến, dễ dùng, hỗ trợ APT và đầy đủ môi trường cho server.
+
+Sau đây là một số lệnh hữu ích để bạn bắt đầu:
+
+    apt update               : cập nhật danh sách gói
+    apt upgrade              : nâng cấp tất cả các gói đã cài
+    apt install [gói]       : cài đặt gói mới
+    apt remove [gói]        : gỡ bỏ gói
+    apt search [gói]        : tìm kiếm gói
+    gotty -p [cổng] -w bash : chia sẻ terminal Ubuntu qua web
+
+EOF
+
+################################
+# Khởi động môi trường Ubuntu #
+################################
+
+$ROOTFS_DIR/usr/local/bin/proot \
+--rootfs="${ROOTFS_DIR}" \
+--link2symlink \
+--kill-on-exit \
+--root-id \
+--cwd=/root \
+--bind=/proc \
+--bind=/dev \
+--bind=/sys \
+--bind=/tmp \
+/bin/bash
