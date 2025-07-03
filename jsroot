@@ -58,48 +58,28 @@ fi
 
 clear && cat << EOF
 
-Starting org.bukkit.craftbukkit.Main
-*** Warning, you've not updated in a while! ***
-*** Please download a new build from https://papermc.io/downloads/paper ***
-[01:34:15 INFO]: [bootstrap] Running Java 21 (OpenJDK 64-Bit Server VM 21.0.7+6-LTS; Eclipse Adoptium Temurin-21.0.7+6) on Linux 5.15.0-143-generic (amd64)
-[01:34:15 INFO]: [bootstrap] Loading Paper 1.21.5-114-ver/1.21.5@a1b3058 (2025-06-18T10:59:02Z) for Minecraft 1.21.5
-[01:34:15 INFO]: [PluginInitializerManager] Initializing plugins...
-[01:34:15 INFO]: [PluginInitializerManager] Initialized 0 plugins
-[01:34:26 INFO]: Environment: Environment[sessionHost=https://sessionserver.mojang.com, servicesHost=https://api.minecraftservices.com, name=PROD]
-[01:34:30 INFO]: Loaded 1373 recipes
-[01:34:30 INFO]: Loaded 1484 advancements
-[01:34:30 INFO]: Starting minecraft server version 1.21.5
-[01:34:30 INFO]: Loading properties
-[01:34:30 INFO]: This server is running Paper version 1.21.5-114-ver/1.21.5@a1b3058 (2025-06-18T10:59:02Z) (Implementing API version 1.21.5-R0.1-SNAPSHOT)
-[01:34:30 INFO]: [spark] This server bundles the spark profiler. For more information please visit https://docs.papermc.io/paper/profiling
-[01:34:30 INFO]: Server Ping Player Sample Count: 12
-[01:34:30 INFO]: Using 4 threads for Netty based IO
-[01:34:32 INFO]: [MoonriseCommon] Paper is using 1 worker threads, 1 I/O threads
-[01:34:32 INFO]: [ChunkTaskScheduler] Chunk system is using population gen parallelism: true
-[01:34:32 INFO]: Default game type: SURVIVAL
-[01:34:32 INFO]: Generating keypair
-[01:34:32 INFO]: Starting Minecraft server on 0.0.0.0:20010
-[01:34:33 INFO]: Using epoll channel type
-[01:34:33 INFO]: Paper: Using libdeflate (Linux x86_64) compression from Velocity.
-[01:34:33 INFO]: Paper: Using OpenSSL 3.x.x (Linux x86_64) cipher from Velocity.
-[01:34:33 INFO]: Server permissions file permissions.yml is empty, ignoring it
-[01:34:33 INFO]: Preparing level "world"
-[01:34:33 INFO]: Preparing start region for dimension minecraft:overworld
-[01:34:34 INFO]: Preparing spawn area: 0%
-[01:34:34 INFO]: Preparing spawn area: 2%
-[01:34:35 INFO]: Preparing spawn area: 24%
-[01:34:35 INFO]: Preparing spawn area: 24%
-[01:34:35 INFO]: Time elapsed: 1703 ms
-[01:34:35 INFO]: Preparing start region for dimension minecraft:the_nether
-[01:34:35 INFO]: Preparing spawn area: 0%
-[01:34:35 INFO]: Time elapsed: 278 ms
-[01:34:35 INFO]: Preparing start region for dimension minecraft:the_end
-[01:34:35 INFO]: Preparing spawn area: 0%
-[01:34:36 INFO]: Time elapsed: 230 ms
-[01:34:36 INFO]: [spark] Starting background profiler...
-[01:34:36 INFO]: Done preparing level "world" (3.426s)
-[01:34:36 INFO]: Running delayed init tasks
-[01:34:36 INFO]: Done (22.867s)! For help, type "help"EOF
+███████  ██████   ██████   ███████  ██████   ███████  ███████ ████████
+██       ██   ██  ██   ██  ██       ██   ██  ██   ██  ██   ██    ██
+█████    ██████   ██████   ██████   ██████   ██   ██  ██   ██    ██
+██       ██   ██  ██   ██  ██       ██   ██  ██   ██  ██   ██    ██
+██       ██   ██  ██   ██  ███████  ██   ██  ███████  ███████    ██
+
+ 
+Chào mừng đến với Alpine Linux freerootmini!
+Đây là bản phân phối Linux nhẹ và hướng đến bảo mật, hoàn hảo để chạy các ứng dụng hiệu suất cao.
+ Sau đây là một số lệnh hữu ích để bạn bắt đầu:
+ 
+    apk add [gói] : cài đặt một gói
+    apk del [gói] : loại bỏ một gói
+    apk update : cập nhật chỉ mục gói
+    apk upgrade : nâng cấp các gói đã cài đặt
+    apk search [từ khóa] : tìm kiếm một gói
+    apk info [gói] : hiển thị thông tin về một gói
+    gotty -p [cổng mở] -w ash : chia sẻ terminal của bạn
+ 
+ Đây là bản đã được việt hóa để sử dụng.
+ 
+EOF
 
 ###########################
 # Bắt đầu môi trường PRoot #
