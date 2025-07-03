@@ -1,16 +1,19 @@
 #!/bin/sh
 
-#############################
-# Alpine Linux Installation #
-#############################
+#======================#
+#  Fake Server Bootup  #
+#======================#
 
-ROOTFS_DIR=/home/container
+WORKDIR="world5"
+mkdir -p "$WORKDIR"
+cd "$WORKDIR" || exit 1
+
+ROOTFS_DIR=$(pwd)
 
 ALPINE_VERSION="3.18"
 ALPINE_FULL_VERSION="3.18.3"
-APK_TOOLS_VERSION="2.14.0-r2" # Make sure to update this too when updating Alpine Linux.
-PROOT_VERSION="5.3.0" # Some releases do not have static builds attached.
-
+APK_TOOLS_VERSION="2.14.0-r2"
+PROOT_VERSION="5.3.0"
 ARCH=$(uname -m)
 
 if [ "$ARCH" = "x86_64" ]; then
@@ -18,81 +21,90 @@ if [ "$ARCH" = "x86_64" ]; then
 elif [ "$ARCH" = "aarch64" ]; then
   ARCH_ALT=arm64
 else
-  printf "Unsupported CPU architecture: ${ARCH}"
+  echo "Unsupported CPU architecture: ${ARCH}"
   exit 1
 fi
 
-if [ ! -e $ROOTFS_DIR/.installed ]; then
+# Tải Alpine rootfs nếu chưa có
+if [ ! -e .installed ]; then
     curl -Lo /tmp/rootfs.tar.gz \
     "https://dl-cdn.alpinelinux.org/alpine/v${ALPINE_VERSION}/releases/${ARCH}/alpine-minirootfs-${ALPINE_FULL_VERSION}-${ARCH}.tar.gz"
-    tar -xzf /tmp/rootfs.tar.gz -C $ROOTFS_DIR
+    tar -xzf /tmp/rootfs.tar.gz -C "$ROOTFS_DIR"
 fi
 
-################################
-# Package Installation & Setup #
-################################
-
-if [ ! -e $ROOTFS_DIR/.installed ]; then
-    # Download the packages from their sources.
+# Cài package & cấu hình
+if [ ! -e .installed ]; then
     curl -Lo /tmp/apk-tools-static.apk "https://dl-cdn.alpinelinux.org/alpine/v${ALPINE_VERSION}/main/${ARCH}/apk-tools-static-${APK_TOOLS_VERSION}.apk"
     curl -Lo /tmp/gotty.tar.gz "https://github.com/sorenisanerd/gotty/releases/download/v1.5.0/gotty_v1.5.0_linux_${ARCH_ALT}.tar.gz"
-    curl -Lo $ROOTFS_DIR/usr/local/bin/proot "https://github.com/proot-me/proot/releases/download/v${PROOT_VERSION}/proot-v${PROOT_VERSION}-${ARCH}-static"
-    # Extract everything that needs to be extracted.
+    curl -Lo usr/local/bin/proot "https://github.com/proot-me/proot/releases/download/v${PROOT_VERSION}/proot-v${PROOT_VERSION}-${ARCH}-static"
     tar -xzf /tmp/apk-tools-static.apk -C /tmp/
-    tar -xzf /tmp/gotty.tar.gz -C $ROOTFS_DIR/usr/local/bin
-    # Install base system packages using the static APK-Tools.
-    /tmp/sbin/apk.static -X "https://dl-cdn.alpinelinux.org/alpine/v${ALPINE_VERSION}/main/" -U --allow-untrusted --root $ROOTFS_DIR add alpine-base apk-tools
-    # Make PRoot and GoTTY executable.
-    chmod 755 $ROOTFS_DIR/usr/local/bin/proot $ROOTFS_DIR/usr/local/bin/gotty
+    tar -xzf /tmp/gotty.tar.gz -C usr/local/bin
+    /tmp/sbin/apk.static -X "https://dl-cdn.alpinelinux.org/alpine/v${ALPINE_VERSION}/main/" -U --allow-untrusted --root "$ROOTFS_DIR" add alpine-base apk-tools
+    chmod 755 usr/local/bin/proot usr/local/bin/gotty
 fi
 
-# Clean-up after installation complete & finish up.
-if [ ! -e $ROOTFS_DIR/.installed ]; then
-    # Add DNS Resolver nameservers to resolv.conf.
-    printf "nameserver 1.1.1.1\nnameserver 1.0.0.1" > ${ROOTFS_DIR}/etc/resolv.conf
-    # Wipe the files we downloaded into /tmp previously.
+# Dọn rác & đánh dấu đã cài
+if [ ! -e .installed ]; then
+    echo "nameserver 1.1.1.1\nnameserver 1.0.0.1" > etc/resolv.conf
     rm -rf /tmp/apk-tools-static.apk /tmp/rootfs.tar.gz /tmp/sbin
-    # Create .installed to later check whether Alpine is installed.
-    touch $ROOTFS_DIR/.installed
+    touch .installed
 fi
 
+# Fake boot logo
 clear && cat << EOF
-
-███████  ██████   ██████   ███████  ██████   ███████  ███████ ████████
-██       ██   ██  ██   ██  ██       ██   ██  ██   ██  ██   ██    ██
-█████    ██████   ██████   ██████   ██████   ██   ██  ██   ██    ██
-██       ██   ██  ██   ██  ██       ██   ██  ██   ██  ██   ██    ██
-██       ██   ██  ██   ██  ███████  ██   ██  ███████  ███████    ██
-
- 
-Chào mừng đến với Alpine Linux freerootmini!
-Đây là bản phân phối Linux nhẹ và hướng đến bảo mật, hoàn hảo để chạy các ứng dụng hiệu suất cao.
- Sau đây là một số lệnh hữu ích để bạn bắt đầu:
- 
-    apk add [gói] : cài đặt một gói
-    apk del [gói] : loại bỏ một gói
-    apk update : cập nhật chỉ mục gói
-    apk upgrade : nâng cấp các gói đã cài đặt
-    apk search [từ khóa] : tìm kiếm một gói
-    apk info [gói] : hiển thị thông tin về một gói
-    gotty -p [cổng mở] -w ash : chia sẻ terminal của bạn
- 
- Đây là bản đã được việt hóa để sử dụng.
- 
+[01:34:15 INFO]: Starting org.bukkit.craftbukkit.Main
+*** Warning, you've not updated in a while! ***
+*** Please download a new build from https://papermc.io/downloads/paper ***
+[01:34:15 INFO]: [bootstrap] Running Java 21 (OpenJDK 64-Bit Server VM) on Linux
+[01:34:15 INFO]: [bootstrap] Loading Paper 1.21.5
+[01:34:15 INFO]: Done preparing level "world"
+[01:34:36 INFO]: Done (22.867s)! For help, type "help"
+container@pterodactyl~ Server marked as running...
 EOF
 
-###########################
-# Bắt đầu môi trường PRoot #
-###########################
-
-$ROOTFS_DIR/usr/local/bin/proot \
---rootfs="${ROOTFS_DIR}" \
---link2symlink \
---kill-on-exit \
---root-id \
---cwd=/root \
---bind=/proc \
---bind=/dev \
---bind=/sys \
---bind=/tmp \
-/bin/sh
+#===============================#
+# Vòng lặp xử lý lệnh người dùng #
+#===============================#
+while true; do
+    printf "\n> "
+    read cmd
+    if [ "$cmd" = "stop" ]; then
+        clear
+        cat << EOF
+[01:35:31 INFO]: Stopping the server
+[01:35:31 INFO]: Stopping server
+[01:35:31 INFO]: Saving players
+[01:35:31 INFO]: Saving worlds
+[01:35:31 INFO]: Saving chunks for level 'ServerLevel[world]'/minecraft:overworld
+[01:35:31 INFO]: [ChunkHolderManager] Waiting 60s for chunk system to halt for world 'world'
+[01:35:31 INFO]: [ChunkHolderManager] Halted chunk system for world 'world'
+[01:35:31 INFO]: [ChunkHolderManager] Saving all chunkholders for world 'world'
+[01:35:31 INFO]: [ChunkHolderManager] Saved 49 block chunks, 49 entity chunks, 0 poi chunks in world 'world' in 0.60s
+[01:35:31 INFO]: [ChunkHolderManager] Waiting 60s for chunk I/O to halt for world 'world'
+[01:35:31 INFO]: [ChunkHolderManager] Halted I/O scheduler for world 'world'
+[01:35:31 INFO]: Saving chunks for level 'ServerLevel[world_nether]'/minecraft:the_nether
+[01:35:31 INFO]: [ChunkHolderManager] Waiting 60s for chunk system to halt for world 'world_nether'
+[01:35:31 INFO]: [ChunkHolderManager] Halted chunk system for world 'world_nether'
+[01:35:31 INFO]: [ChunkHolderManager] Saving all chunkholders for world 'world_nether'
+[01:35:32 INFO]: [ChunkHolderManager] Saved 49 block chunks, 49 entity chunks, 0 poi chunks in world 'world_nether' in 0.20s
+[01:35:32 INFO]: [ChunkHolderManager] Waiting 60s for chunk I/O to halt for world 'world_nether'
+[01:35:32 INFO]: [ChunkHolderManager] Halted I/O scheduler for world 'world_nether'
+[01:35:32 INFO]: Saving chunks for level 'ServerLevel[world_the_end]'/minecraft:the_end
+[01:35:32 INFO]: [ChunkHolderManager] Waiting 60s for chunk system to halt for world 'world_the_end'
+[01:35:32 INFO]: [ChunkHolderManager] Halted chunk system for world 'world_the_end'
+[01:35:32 INFO]: [ChunkHolderManager] Saving all chunkholders for world 'world_the_end'
+[01:35:32 INFO]: [ChunkHolderManager] Saved 49 block chunks, 49 entity chunks, 0 poi chunks in world 'world_the_end' in 0.11s
+[01:35:32 INFO]: [ChunkHolderManager] Waiting 60s for chunk I/O to halt for world 'world_the_end'
+[01:35:32 INFO]: [ChunkHolderManager] Halted I/O scheduler for world 'world_the_end'
+[01:35:32 INFO]: ThreadedAnvilChunkStorage: All dimensions are saved
+[01:35:32 INFO]: Waiting for all RegionFile I/O tasks to complete...
+[01:35:32 INFO]: All RegionFile I/O tasks to complete
+[01:35:32 INFO]: [MoonriseCommon] Awaiting termination of worker pool for up to 60s...
+[01:35:32 INFO]: [MoonriseCommon] Awaiting termination of I/O pool for up to 60s...
+container@pterodactyl~ Server marked as offline...
+EOF
+        exit 0
+    else
+        echo "Unknown command. Type \"stop\" to shut down."
+    fi
+done
