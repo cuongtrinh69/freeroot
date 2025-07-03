@@ -17,8 +17,9 @@ else
   exit 1
 fi
 
-ROOTFS_URL="https://partner-images.canonical.com/core/jammy/current/ubuntu-jammy-core-cloudimg-${ARCH_ALT}-root.tar.gz"
+ROOTFS_URL="https://cdimage.ubuntu.com/ubuntu-base/releases/${UBUNTU_VERSION}/release/ubuntu-base-${UBUNTU_VERSION}-base-${ARCH_ALT}.tar.gz"
 PROOT_VERSION="5.3.0"
+GOTTY_VERSION="1.5.0"
 
 # Cài đặt nếu chưa có rootfs
 if [ ! -e $ROOTFS_DIR/.installed ]; then
@@ -30,22 +31,31 @@ if [ ! -e $ROOTFS_DIR/.installed ]; then
     tar -xzf /tmp/ubuntu.tar.gz -C $ROOTFS_DIR
 
     echo "[*] Đang tải proot..."
+    mkdir -p $ROOTFS_DIR/usr/local/bin
     curl -Lo $ROOTFS_DIR/usr/local/bin/proot "https://github.com/proot-me/proot/releases/download/v${PROOT_VERSION}/proot-v${PROOT_VERSION}-${ARCH}-static"
     chmod 755 $ROOTFS_DIR/usr/local/bin/proot
+
+    echo "[*] Đang tải gotty..."
+    curl -Lo /tmp/gotty.tar.gz "https://github.com/sorenisanerd/gotty/releases/download/v${GOTTY_VERSION}/gotty_v${GOTTY_VERSION}_linux_${ARCH_ALT}.tar.gz"
+    mkdir -p /tmp/gotty_extract
+    tar -xzf /tmp/gotty.tar.gz -C /tmp/gotty_extract
+    mv /tmp/gotty_extract/gotty $ROOTFS_DIR/usr/local/bin/
+    chmod +x $ROOTFS_DIR/usr/local/bin/gotty
 
     echo "[*] Thiết lập DNS..."
     echo "nameserver 1.1.1.1" > $ROOTFS_DIR/etc/resolv.conf
 
-    echo "[*] Bỏ kiểm tra GPG apt và cấu hình lại dpkg nếu cần..."
+    echo "[*] Sửa lỗi dpkg & apt..."
     mkdir -p $ROOTFS_DIR/var/lib/dpkg
-    [ ! -e $ROOTFS_DIR/var/lib/dpkg/status ] && touch $ROOTFS_DIR/var/lib/dpkg/status
+    touch $ROOTFS_DIR/var/lib/dpkg/status
+    touch $ROOTFS_DIR/var/lib/dpkg/status-old
 
     echo 'Acquire::AllowInsecureRepositories "true";' > $ROOTFS_DIR/etc/apt/apt.conf.d/99insecure
     echo 'APT::Get::AllowUnauthenticated "true";' > $ROOTFS_DIR/etc/apt/apt.conf.d/99unauth
     sed -i 's/^deb /deb [trusted=yes] /' $ROOTFS_DIR/etc/apt/sources.list 2>/dev/null || true
 
     touch $ROOTFS_DIR/.installed
-    rm -rf /tmp/ubuntu.tar.gz
+    rm -rf /tmp/ubuntu.tar.gz /tmp/gotty.tar.gz /tmp/gotty_extract
 fi
 
 ################################
@@ -88,4 +98,5 @@ $ROOTFS_DIR/usr/local/bin/proot \
 --bind=/dev \
 --bind=/sys \
 --bind=/tmp \
+--bind=/etc/resolv.conf \
 /bin/bash
