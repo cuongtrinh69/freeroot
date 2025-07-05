@@ -5,8 +5,7 @@
 #############################
 
 ROOTFS_DIR=/home/container
-
-UBUNTU_VERSION="20.04"
+UBUNTU_VERSION="focal"  # tương ứng với 20.04
 PROOT_VERSION="5.3.0"
 
 ARCH=$(uname -m)
@@ -14,26 +13,23 @@ ARCH=$(uname -m)
 if [ "$ARCH" = "x86_64" ]; then
   ARCH_ALT=amd64
   PROOT_URL="https://github.com/proot-me/proot/releases/download/v${PROOT_VERSION}/proot-v${PROOT_VERSION}-x86_64-static"
+  ROOTFS_URL="http://partner-images.canonical.com/core/${UBUNTU_VERSION}/current/ubuntu-${UBUNTU_VERSION}-core-cloudimg-${ARCH_ALT}-root.tar.gz"
 elif [ "$ARCH" = "aarch64" ]; then
   ARCH_ALT=arm64
   PROOT_URL="https://github.com/proot-me/proot/releases/download/v${PROOT_VERSION}/proot-v${PROOT_VERSION}-aarch64-static"
+  ROOTFS_URL="http://partner-images.canonical.com/core/${UBUNTU_VERSION}/current/ubuntu-${UBUNTU_VERSION}-core-cloudimg-${ARCH_ALT}-root.tar.gz"
 else
-  printf "Unsupported CPU architecture: ${ARCH}"
+  echo "Unsupported architecture: $ARCH"
   exit 1
 fi
 
-# Bước 1: Tải rootfs nếu chưa có
 if [ ! -e $ROOTFS_DIR/.installed ]; then
-    echo "[+] Đang tải Ubuntu $UBUNTU_VERSION rootfs..."
-    curl -Lo /tmp/rootfs.tar.gz \
-    "http://cdimage.ubuntu.com/ubuntu-base/releases/${UBUNTU_VERSION}/release/ubuntu-base-${UBUNTU_VERSION}-base-${ARCH_ALT}.tar.gz"
+    echo "[+] Đang tải Ubuntu core rootfs..."
+    curl -Lo /tmp/rootfs.tar.gz "$ROOTFS_URL"
     mkdir -p $ROOTFS_DIR
     tar -xzf /tmp/rootfs.tar.gz -C $ROOTFS_DIR
+    mkdir -p $ROOTFS_DIR/root
 fi
-
-################################
-# Tải PRoot vào thư mục riêng  #
-################################
 
 if [ ! -e $ROOTFS_DIR/usr/local/bin/proot ]; then
     echo "[+] Tải proot..."
@@ -42,21 +38,13 @@ if [ ! -e $ROOTFS_DIR/usr/local/bin/proot ]; then
     chmod 755 $ROOTFS_DIR/usr/local/bin/proot
 fi
 
-####################################
-# Cài đặt bổ sung và dọn dẹp tạm   #
-####################################
-
 if [ ! -e $ROOTFS_DIR/.installed ]; then
     echo "[+] Cấu hình DNS..."
-    printf "nameserver 1.1.1.1\nnameserver 1.0.0.1" > ${ROOTFS_DIR}/etc/resolv.conf
-    echo "[+] Dọn dẹp file tạm..."
+    echo "nameserver 1.1.1.1" > $ROOTFS_DIR/etc/resolv.conf
+    echo "nameserver 1.0.0.1" >> $ROOTFS_DIR/etc/resolv.conf
     rm -rf /tmp/rootfs.tar.gz
     touch $ROOTFS_DIR/.installed
 fi
-
-################################
-# Thông báo chào mừng người dùng #
-################################
 
 clear && cat << EOF
 
@@ -67,35 +55,24 @@ clear && cat << EOF
 ██       ██   ██  ██   ██  ███████  ██   ██  ███████  ███████    ██
 
  
-Chào mừng đến với Ubuntu $UBUNTU_VERSION freerootmini!
+Chào mừng đến với Ubuntu 20.04 freerootmini!
 Đây là môi trường Ubuntu nhẹ chạy không cần quyền root, phù hợp cho các tác vụ lập trình, học tập và chạy ứng dụng thực tế.
 
 Sau đây là một số lệnh hữu ích để bạn bắt đầu:
-
-    apt update : cập nhật danh sách gói
-    apt install [gói] : cài đặt một gói phần mềm
-    apt upgrade : nâng cấp các gói đã cài
-    apt search [gói] : tìm kiếm gói
-    apt remove [gói] : xoá gói
-
-Đã Việt hoá thân thiện để bạn sử dụng dễ dàng hơn!
+    apt update
+    apt install bash curl nano wget python3
 
 EOF
-
-###########################
-# Bắt đầu môi trường PRoot #
-###########################
 
 $ROOTFS_DIR/usr/local/bin/proot \
 --rootfs="${ROOTFS_DIR}" \
 --link2symlink \
 --kill-on-exit \
 --root-id \
---cwd=/ \
+--cwd=/root \
 --bind=/proc \
 --bind=/dev \
 --bind=/sys \
 --bind=/tmp \
 --bind=/etc/resolv.conf \
 /bin/sh
-
