@@ -5,48 +5,50 @@
 #############################
 
 ROOTFS_DIR=/home/container
-UBUNTU_VERSION="20.04"  # Có thể đổi thành 22.04 hoặc bản mới hơn
+UBUNTU_VERSION="20.04"  # Bạn có thể đổi sang 22.04 nếu thích
 
 ARCH=$(uname -m)
 if [ "$ARCH" = "x86_64" ]; then
   ARCH_ALT=amd64
+  PROOT_URL="https://github.com/proot-me/proot/releases/download/v5.3.0/proot-v5.3.0-x86_64-static"
 elif [ "$ARCH" = "aarch64" ]; then
   ARCH_ALT=arm64
+  PROOT_URL="https://github.com/proot-me/proot/releases/download/v5.3.0/proot-v5.3.0-aarch64-static"
 else
-  echo "Unsupported architecture: $ARCH"
+  echo "❌ Unsupported architecture: $ARCH"
   exit 1
 fi
 
+# Tạo thư mục nếu chưa có
+mkdir -p $ROOTFS_DIR/usr/local/bin
+
+# Bước 1: Tải Ubuntu rootfs nếu chưa có
 if [ ! -e $ROOTFS_DIR/.installed ]; then
-    echo "[+] Đang tải Ubuntu rootfs..."
-    curl -Lo /tmp/ubuntu-rootfs.tar.gz "http://cdimage.ubuntu.com/ubuntu-base/releases/${UBUNTU_VERSION}/release/ubuntu-base-${UBUNTU_VERSION}-base-${ARCH_ALT}.tar.gz"
-    mkdir -p $ROOTFS_DIR
+    echo "[+] Đang tải Ubuntu $UBUNTU_VERSION rootfs cho $ARCH_ALT..."
+    curl -Lo /tmp/ubuntu-rootfs.tar.gz \
+    "http://cdimage.ubuntu.com/ubuntu-base/releases/${UBUNTU_VERSION}/release/ubuntu-base-${UBUNTU_VERSION}-base-${ARCH_ALT}.tar.gz"
     tar -xzf /tmp/ubuntu-rootfs.tar.gz -C $ROOTFS_DIR
 fi
 
-########################
-# Cài đặt PRoot Binary #
-########################
-
-PROOT_VERSION="5.3.0"
-if [ ! -e $ROOTFS_DIR/usr/local/bin/proot ]; then
-    echo "[+] Tải PRoot..."
-    curl -Lo $ROOTFS_DIR/usr/local/bin/proot "https://github.com/proot-me/proot/releases/download/v${PROOT_VERSION}/proot-v${PROOT_VERSION}-${ARCH}-static"
-    chmod 755 $ROOTFS_DIR/usr/local/bin/proot
+# Bước 2: Tải proot nếu chưa có
+if [ ! -f "$ROOTFS_DIR/usr/local/bin/proot" ]; then
+    echo "[+] Đang tải proot..."
+    curl -Lo "$ROOTFS_DIR/usr/local/bin/proot" "$PROOT_URL"
+    chmod +x "$ROOTFS_DIR/usr/local/bin/proot"
 fi
 
-########################
-# Cấu hình cơ bản     #
-########################
-
+# Bước 3: Thiết lập DNS và đánh dấu đã cài
 if [ ! -e $ROOTFS_DIR/.installed ]; then
+    echo "[+] Cấu hình DNS..."
     echo "nameserver 1.1.1.1" > $ROOTFS_DIR/etc/resolv.conf
     echo "nameserver 1.0.0.1" >> $ROOTFS_DIR/etc/resolv.conf
-    touch $ROOTFS_DIR/.installed
+
     rm -rf /tmp/ubuntu-rootfs.tar.gz
+    touch $ROOTFS_DIR/.installed
 fi
 
-clear && cat << EOF
+# Bước 4: In thông báo chào mừng
+clear && cat << "EOF"
 
 ███████  ██    ██  ██████  ██    ██ ████████ ██    ██ 
 ██       ██    ██ ██    ██ ██    ██    ██    ██    ██ 
@@ -54,20 +56,16 @@ clear && cat << EOF
 ██       ██    ██ ██    ██ ██    ██    ██    ██    ██ 
 ██        ██████   ██████   ██████     ██     ██████  
 
-Chào mừng đến với Ubuntu $UBUNTU_VERSION PRoot môi trường!
-Bạn đang chạy trong môi trường không cần root với đầy đủ tính năng Linux.
+Chào mừng đến với Ubuntu PRoot!
+Đây là môi trường Ubuntu $UBUNTU_VERSION chạy không cần quyền root.
 
-Một số lệnh hữu ích sau khi vào môi trường:
-
+🔧 Một số lệnh bạn có thể dùng sau khi vào môi trường:
     apt update
-    apt install nano curl sudo wget python3
+    apt install nano curl wget sudo python3
 
 EOF
 
-###########################
-# Bắt đầu môi trường PRoot #
-###########################
-
+# Bước 5: Khởi chạy Ubuntu trong proot
 $ROOTFS_DIR/usr/local/bin/proot \
 --rootfs="$ROOTFS_DIR" \
 --link2symlink \
