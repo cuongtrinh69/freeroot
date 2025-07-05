@@ -91,10 +91,11 @@ $ROOTFS_DIR/usr/local/bin/proot \
 --link2symlink \
 --kill-on-exit \
 --root-id \
---cwd=/root \
+--cwd=/ \
 --bind=/proc \
 --bind=/dev \
 --bind=/sys \
 --bind=/tmp \
 --bind=/etc/resolv.conf \
-/bin/bash
+/bin/sh
+
