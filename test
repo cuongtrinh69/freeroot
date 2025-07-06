@@ -13,7 +13,7 @@ if [ "$ARCH" = "x86_64" ]; then
 elif [ "$ARCH" = "aarch64" ]; then
   ARCH_ALT=arm64
 else
-  printf "Unsupported CPU architecture: ${ARCH}\n"
+  echo "Unsupported architecture: $ARCH"
   exit 1
 fi
 
@@ -36,13 +36,28 @@ if [ ! -e $ROOTFS_DIR/.installed ]; then
     echo "[*] Thiết lập DNS..."
     echo "nameserver 1.1.1.1" > $ROOTFS_DIR/etc/resolv.conf
 
-    rm -rf /tmp/ubuntu.tar.gz
+    echo "[*] Thiết lập file dpkg/status giả..."
+    mkdir -p $ROOTFS_DIR/var/lib/dpkg
+    touch $ROOTFS_DIR/var/lib/dpkg/status
+    echo "" > $ROOTFS_DIR/var/lib/dpkg/status
+    touch $ROOTFS_DIR/var/lib/dpkg/status-old
+
+    echo "[*] Cài đặt cơ bản..."
+    cat <<EOL > $ROOTFS_DIR/root/bootstrap.sh
+#!/bin/sh
+apt update
+DEBIAN_FRONTEND=noninteractive apt install -y curl wget nano ca-certificates iproute2 iputils-ping net-tools apt-utils dialog
+rm -f /root/bootstrap.sh
+EOL
+    chmod +x $ROOTFS_DIR/root/bootstrap.sh
+
     touch $ROOTFS_DIR/.installed
 fi
 
 ################################
 # Giới thiệu Ubuntu bằng ASCII #
 ################################
+
 clear && cat << EOF
 
 ██    ██ ██████  ██    ██ ██████  ███    ██ ██    ██     ███████ ██    ██ ███████ ██████  ███████ 
@@ -53,29 +68,23 @@ clear && cat << EOF
                                                                                                   
 
 Chào mừng đến với Ubuntu Server freerootmini!
-Đây là một hệ điều hành phổ biến, dễ dùng, hỗ trợ APT và đầy đủ môi trường cho server.
+Đây là môi trường Ubuntu nhẹ, mô phỏng root đầy đủ với APT và bash.
 
-Sau đây là một số lệnh hữu ích để bạn bắt đầu:
-
-    apt update               : cập nhật danh sách gói
-    apt upgrade              : nâng cấp tất cả các gói đã cài
-    apt install [gói]       : cài đặt gói mới
-    apt remove [gói]        : gỡ bỏ gói
-    apt search [gói]        : tìm kiếm gói
-    gotty -p [cổng] -w bash : chia sẻ terminal Ubuntu qua web
+📌 Lệnh cơ bản:
+  - apt update && apt install [gói]    : Cài phần mềm
+  - gotty -p 8080 -w bash              : Chia sẻ terminal qua web
+  - bash /root/bootstrap.sh           : Cài công cụ cơ bản (chỉ chạy lần đầu)
 
 EOF
 
 ################################
-# Khởi động môi trường Ubuntu #
+# Khởi động Ubuntu trong PRoot #
 ################################
 
 LAUNCH_SHELL="/bin/bash"
-if [ ! -e "$ROOTFS_DIR$LAUNCH_SHELL" ]; then
-  LAUNCH_SHELL="/bin/sh"
-fi
+[ ! -e "$ROOTFS_DIR$LAUNCH_SHELL" ] && LAUNCH_SHELL="/bin/sh"
 
-$ROOTFS_DIR/usr/local/bin/proot \
+exec $ROOTFS_DIR/usr/local/bin/proot \
 --rootfs="${ROOTFS_DIR}" \
 --link2symlink \
 --kill-on-exit \
@@ -85,4 +94,5 @@ $ROOTFS_DIR/usr/local/bin/proot \
 --bind=/dev \
 --bind=/sys \
 --bind=/tmp \
+--bind=/etc/resolv.conf \
 "$LAUNCH_SHELL"
