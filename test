@@ -1,68 +1,79 @@
 #!/bin/sh
 
-#############################
-# Ubuntu RootFS Installer   #
-#############################
+################################
+# Ubuntu Server Installation   #
+################################
 
 ROOTFS_DIR=/home/container
-UBUNTU_VERSION="focal"  # tương ứng với 20.04
-PROOT_VERSION="5.3.0"
-
+UBUNTU_VERSION="22.04"
 ARCH=$(uname -m)
 
 if [ "$ARCH" = "x86_64" ]; then
   ARCH_ALT=amd64
-  PROOT_URL="https://github.com/proot-me/proot/releases/download/v${PROOT_VERSION}/proot-v${PROOT_VERSION}-x86_64-static"
-  ROOTFS_URL="http://partner-images.canonical.com/core/${UBUNTU_VERSION}/current/ubuntu-${UBUNTU_VERSION}-core-cloudimg-${ARCH_ALT}-root.tar.gz"
 elif [ "$ARCH" = "aarch64" ]; then
   ARCH_ALT=arm64
-  PROOT_URL="https://github.com/proot-me/proot/releases/download/v${PROOT_VERSION}/proot-v${PROOT_VERSION}-aarch64-static"
-  ROOTFS_URL="http://partner-images.canonical.com/core/${UBUNTU_VERSION}/current/ubuntu-${UBUNTU_VERSION}-core-cloudimg-${ARCH_ALT}-root.tar.gz"
 else
-  echo "Unsupported architecture: $ARCH"
+  printf "Unsupported CPU architecture: ${ARCH}\n"
   exit 1
 fi
 
+ROOTFS_URL="https://partner-images.canonical.com/core/jammy/current/ubuntu-jammy-core-cloudimg-${ARCH_ALT}-root.tar.gz"
+PROOT_VERSION="5.3.0"
+
 if [ ! -e $ROOTFS_DIR/.installed ]; then
-    echo "[+] Đang tải Ubuntu core rootfs..."
-    curl -Lo /tmp/rootfs.tar.gz "$ROOTFS_URL"
+    echo "[*] Đang tải Ubuntu rootfs..."
+    curl -Lo /tmp/ubuntu.tar.gz "$ROOTFS_URL"
+
+    echo "[*] Đang giải nén rootfs..."
     mkdir -p $ROOTFS_DIR
-    tar -xzf /tmp/rootfs.tar.gz -C $ROOTFS_DIR
-    mkdir -p $ROOTFS_DIR/root
-fi
+    tar -xzf /tmp/ubuntu.tar.gz -C $ROOTFS_DIR
 
-if [ ! -e $ROOTFS_DIR/usr/local/bin/proot ]; then
-    echo "[+] Tải proot..."
+    echo "[*] Đang tải proot..."
     mkdir -p $ROOTFS_DIR/usr/local/bin
-    curl -Lo $ROOTFS_DIR/usr/local/bin/proot "$PROOT_URL"
+    curl -Lo $ROOTFS_DIR/usr/local/bin/proot "https://github.com/proot-me/proot/releases/download/v${PROOT_VERSION}/proot-v${PROOT_VERSION}-${ARCH}-static"
     chmod 755 $ROOTFS_DIR/usr/local/bin/proot
-fi
 
-if [ ! -e $ROOTFS_DIR/.installed ]; then
-    echo "[+] Cấu hình DNS..."
+    echo "[*] Thiết lập DNS..."
     echo "nameserver 1.1.1.1" > $ROOTFS_DIR/etc/resolv.conf
-    echo "nameserver 1.0.0.1" >> $ROOTFS_DIR/etc/resolv.conf
-    rm -rf /tmp/rootfs.tar.gz
+
+    rm -rf /tmp/ubuntu.tar.gz
     touch $ROOTFS_DIR/.installed
 fi
 
+################################
+# Giới thiệu Ubuntu bằng ASCII #
+################################
 clear && cat << EOF
 
-███████  ██████   ██████   ███████  ██████   ███████  ███████ ████████
-██       ██   ██  ██   ██  ██       ██   ██  ██   ██  ██   ██    ██
-█████    ██████   ██████   ██████   ██████   ██   ██  ██   ██    ██
-██       ██   ██  ██   ██  ██       ██   ██  ██   ██  ██   ██    ██
-██       ██   ██  ██   ██  ███████  ██   ██  ███████  ███████    ██
+██    ██ ██████  ██    ██ ██████  ███    ██ ██    ██     ███████ ██    ██ ███████ ██████  ███████ 
+██    ██ ██   ██ ██    ██ ██   ██ ████   ██ ██    ██     ██      ██    ██ ██      ██   ██ ██      
+██    ██ ██████  ██    ██ ██   ██ ██ ██  ██ ██    ██     ███████ ██    ██ █████   ██████  ███████ 
+██    ██ ██   ██ ██    ██ ██   ██ ██  ██ ██ ██    ██          ██ ██    ██ ██      ██   ██      ██ 
+ ██████  ██████   ██████  ██████  ██   ████  ██████      ███████  ██████  ███████ ██   ██ ███████ 
+                                                                                                  
 
- 
-Chào mừng đến với Ubuntu 20.04 freerootmini!
-Đây là môi trường Ubuntu nhẹ chạy không cần quyền root, phù hợp cho các tác vụ lập trình, học tập và chạy ứng dụng thực tế.
+Chào mừng đến với Ubuntu Server freerootmini!
+Đây là một hệ điều hành phổ biến, dễ dùng, hỗ trợ APT và đầy đủ môi trường cho server.
 
 Sau đây là một số lệnh hữu ích để bạn bắt đầu:
-    apt update
-    apt install bash curl nano wget python3
+
+    apt update               : cập nhật danh sách gói
+    apt upgrade              : nâng cấp tất cả các gói đã cài
+    apt install [gói]       : cài đặt gói mới
+    apt remove [gói]        : gỡ bỏ gói
+    apt search [gói]        : tìm kiếm gói
+    gotty -p [cổng] -w bash : chia sẻ terminal Ubuntu qua web
 
 EOF
+
+################################
+# Khởi động môi trường Ubuntu #
+################################
+
+LAUNCH_SHELL="/bin/bash"
+if [ ! -e "$ROOTFS_DIR$LAUNCH_SHELL" ]; then
+  LAUNCH_SHELL="/bin/sh"
+fi
 
 $ROOTFS_DIR/usr/local/bin/proot \
 --rootfs="${ROOTFS_DIR}" \
@@ -74,5 +85,4 @@ $ROOTFS_DIR/usr/local/bin/proot \
 --bind=/dev \
 --bind=/sys \
 --bind=/tmp \
---bind=/etc/resolv.conf \
-/bin/sh
+"$LAUNCH_SHELL"
