@@ -1,1 +1,26 @@
+#!/bin/bash
+set -e
 
+UBUNTU_URL="https://partner-images.canonical.com/core/jammy/current/ubuntu-jammy-core-cloudimg-amd64-root.tar.gz"
+ROOTFS_DIR="ubuntu-rootfs"
+
+# Tải rootfs nếu chưa có
+if [ ! -d "$ROOTFS_DIR" ]; then
+    echo "[+] Đang tải Ubuntu RootFS..."
+    curl -Lo ubuntu.tar.gz "$UBUNTU_URL"
+    mkdir -p "$ROOTFS_DIR"
+    tar -xzf ubuntu.tar.gz -C "$ROOTFS_DIR"
+    rm -f ubuntu.tar.gz
+fi
+
+echo "[+] Đang khởi động Ubuntu..."
+
+proot \
+  -0 \
+  -r "$ROOTFS_DIR" \
+  -b /dev \
+  -b /proc \
+  -b /sys \
+  -b /tmp \
+  -w /root \
+  /bin/bash --login
