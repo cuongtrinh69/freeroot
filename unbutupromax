@@ -1,26 +1,30 @@
-#!/bin/bash
+#!/bin/sh
+
 set -e
 
-UBUNTU_URL="https://partner-images.canonical.com/core/jammy/current/ubuntu-jammy-core-cloudimg-amd64-root.tar.gz"
-ROOTFS_DIR="ubuntu-rootfs"
+ROOTFS_URL="https://partner-images.canonical.com/core/focal/current/ubuntu-focal-core-cloudimg-amd64-root.tar.gz"
+ROOTFS_FILE="ubuntu-rootfs.tar.gz"
+ROOTFS_DIR="./ubuntu-fs"
 
-# Tải rootfs nếu chưa có
+echo "[+] Đang tải Ubuntu RootFS..."
+
+# Tải RootFS nếu chưa có
+if [ ! -f "$ROOTFS_FILE" ]; then
+    curl -L -o "$ROOTFS_FILE" "$ROOTFS_URL"
+fi
+
+# Giải nén nếu chưa giải nén
 if [ ! -d "$ROOTFS_DIR" ]; then
-    echo "[+] Đang tải Ubuntu RootFS..."
-    curl -Lo ubuntu.tar.gz "$UBUNTU_URL"
     mkdir -p "$ROOTFS_DIR"
-    tar -xzf ubuntu.tar.gz -C "$ROOTFS_DIR"
-    rm -f ubuntu.tar.gz
+    tar -xzf "$ROOTFS_FILE" -C "$ROOTFS_DIR"
+fi
+
+# Kiểm tra proot
+if ! command -v proot >/dev/null 2>&1; then
+    echo "[!] Lỗi: proot chưa được cài đặt. Vui lòng tải từ https://github.com/proot-me/proot/releases"
+    exit 127
 fi
 
 echo "[+] Đang khởi động Ubuntu..."
 
-proot \
-  -0 \
-  -r "$ROOTFS_DIR" \
-  -b /dev \
-  -b /proc \
-  -b /sys \
-  -b /tmp \
-  -w /root \
-  /bin/bash --login
+exec proot -0 -r "$ROOTFS_DIR" -b /dev -b /proc -b /sys -w /root /bin/sh
