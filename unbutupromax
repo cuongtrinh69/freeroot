@@ -1,30 +1,95 @@
 #!/bin/sh
 
-set -e
+##############################
+# Ubuntu Linux Installation #
+##############################
 
-ROOTFS_URL="https://partner-images.canonical.com/core/focal/current/ubuntu-focal-core-cloudimg-amd64-root.tar.gz"
-ROOTFS_FILE="ubuntu-rootfs.tar.gz"
-ROOTFS_DIR="./ubuntu-fs"
+ROOTFS_DIR=/home/container
+UBUNTU_VERSION="22.04"
 
-echo "[+] Đang tải Ubuntu RootFS..."
-
-# Tải RootFS nếu chưa có
-if [ ! -f "$ROOTFS_FILE" ]; then
-    curl -L -o "$ROOTFS_FILE" "$ROOTFS_URL"
+ARCH=$(uname -m)
+if [ "$ARCH" = "x86_64" ]; then
+  ARCH_ALT="amd64"
+elif [ "$ARCH" = "aarch64" ]; then
+  ARCH_ALT="arm64"
+else
+  echo "Unsupported architecture: $ARCH"
+  exit 1
 fi
 
-# Giải nén nếu chưa giải nén
-if [ ! -d "$ROOTFS_DIR" ]; then
+if [ ! -e "$ROOTFS_DIR/.installed" ]; then
+    echo "[+] Downloading Ubuntu rootfs..."
+    curl -Lo /tmp/ubuntu-rootfs.tar.gz "https://partner-images.canonical.com/core/jammy/current/ubuntu-jammy-core-cloudimg-${ARCH_ALT}-root.tar.gz"
+
+    echo "[+] Extracting rootfs to $ROOTFS_DIR..."
     mkdir -p "$ROOTFS_DIR"
-    tar -xzf "$ROOTFS_FILE" -C "$ROOTFS_DIR"
+    tar -xzf /tmp/ubuntu-rootfs.tar.gz -C "$ROOTFS_DIR"
+
+    echo "[+] Cleaning up..."
+    rm -f /tmp/ubuntu-rootfs.tar.gz
 fi
 
-# Kiểm tra proot
-if ! command -v proot >/dev/null 2>&1; then
-    echo "[!] Lỗi: proot chưa được cài đặt. Vui lòng tải từ https://github.com/proot-me/proot/releases"
-    exit 127
+##############################
+# Install gotty + proot      #
+##############################
+
+GOTTY_VERSION="1.5.0"
+PROOT_VERSION="5.3.0"
+
+if [ ! -f "$ROOTFS_DIR/usr/local/bin/gotty" ]; then
+    echo "[+] Installing gotty..."
+    curl -Lo /tmp/gotty.tar.gz "https://github.com/sorenisanerd/gotty/releases/download/v${GOTTY_VERSION}/gotty_v${GOTTY_VERSION}_linux_${ARCH_ALT}.tar.gz"
+    mkdir -p "$ROOTFS_DIR/usr/local/bin"
+    tar -xzf /tmp/gotty.tar.gz -C "$ROOTFS_DIR/usr/local/bin"
+    rm -f /tmp/gotty.tar.gz
 fi
 
-echo "[+] Đang khởi động Ubuntu..."
+if [ ! -f "$ROOTFS_DIR/usr/local/bin/proot" ]; then
+    echo "[+] Installing proot..."
+    curl -Lo "$ROOTFS_DIR/usr/local/bin/proot" "https://github.com/proot-me/proot/releases/download/v${PROOT_VERSION}/proot-v${PROOT_VERSION}-${ARCH}-static"
+    chmod +x "$ROOTFS_DIR/usr/local/bin/proot"
+fi
 
-exec proot -0 -r "$ROOTFS_DIR" -b /dev -b /proc -b /sys -w /root /bin/sh
+# Add DNS
+if [ ! -e "$ROOTFS_DIR/.installed" ]; then
+    echo "[+] Setting up DNS resolvers..."
+    echo "nameserver 1.1.1.1" > "$ROOTFS_DIR/etc/resolv.conf"
+    echo "nameserver 1.0.0.1" >> "$ROOTFS_DIR/etc/resolv.conf"
+
+    touch "$ROOTFS_DIR/.installed"
+fi
+
+clear && cat << EOF
+
+███████ ██    ██ ██████  ██    ██ ████████ ██    ██ 
+██      ██    ██ ██   ██ ██    ██    ██    ██    ██ 
+█████   ██    ██ ██████  ██    ██    ██    ██    ██ 
+██      ██    ██ ██   ██ ██    ██    ██    ██    ██ 
+██       ██████  ██████   ██████     ██     ██████  
+                                                   
+Chào mừng bạn đến với Ubuntu Linux (freerootmini)
+Đây là hệ thống Ubuntu gọn nhẹ, phù hợp để học tập và chạy ứng dụng nhẹ không cần quyền root.
+
+Một số lệnh cơ bản:
+    apt update        : cập nhật danh sách gói
+    apt install       : cài đặt phần mềm
+    apt remove        : gỡ phần mềm
+    gotty -p 8080 -w bash : chia sẻ terminal Ubuntu của bạn qua web
+
+EOF
+
+###########################
+# Bắt đầu môi trường PRoot #
+###########################
+
+exec "$ROOTFS_DIR/usr/local/bin/proot" \
+--rootfs="$ROOTFS_DIR" \
+--link2symlink \
+--kill-on-exit \
+--root-id \
+--cwd=/root \
+--bind=/proc \
+--bind=/dev \
+--bind=/sys \
+--bind=/tmp \
+/bin/bash
